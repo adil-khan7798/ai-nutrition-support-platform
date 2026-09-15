@@ -1,0 +1,8 @@
+# Versions verified on Python 3.14. On older Python you can relax these pins.
+streamlit>=1.39
+plotly>=5.24
+pandas>=2.2
+httpx>=0.28
+python-dotenv>=1.0
+# The health-analysis tab imports the sibling agents/ package, which also needs:
+openai>=2.0

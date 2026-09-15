@@ -1,0 +1,79 @@
+name: Security Scan (OWASP ZAP)
+
+on:
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  zap-scan:
+    name: ZAP Baseline Scan
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install intake-api dependencies
+        run: pip install -r intake_api/requirements.txt
+
+      - name: Install ml-api dependencies
+        run: pip install -r ml_api/requirements.txt
+
+      - name: Train ML models
+        working-directory: ml_api
+        run: python ml_api.py train
+
+      - name: Start ML API
+        working-directory: ml_api
+        env:
+          JWT_SECRET_KEY: ci-test-secret
+          PORT: "8002"
+        run: |
+          python ml_api.py serve &
+          echo "ML_API_PID=$!" >> $GITHUB_ENV
+
+      - name: Start Intake API
+        working-directory: intake_api
+        env:
+          JWT_SECRET_KEY: ci-test-secret
+          ML_API_URL: http://localhost:8002
+          PORT: "8001"
+        run: |
+          python intake_api.py &
+          echo "INTAKE_API_PID=$!" >> $GITHUB_ENV
+
+      - name: Wait for services to be ready
+        run: |
+          for i in {1..30}; do
+            if curl -sf http://localhost:8001/health && curl -sf http://localhost:8002/health; then
+              echo "Both services ready"
+              break
+            fi
+            echo "Waiting... ($i/30)"
+            sleep 2
+          done
+
+      - name: Run OWASP ZAP baseline scan
+        run: |
+          docker run --rm \
+            --network host \
+            -v "${{ github.workspace }}:/zap/wrk/:rw" \
+            ghcr.io/zaproxy/zaproxy:stable \
+            zap-baseline.py \
+            -t http://localhost:8001 \
+            -r zap_report.html \
+            -I
+
+      - name: Upload ZAP report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: zap-report
+          path: zap_report.html
+          retention-days: 30

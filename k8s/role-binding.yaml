@@ -1,0 +1,20 @@
+# Kubernetes RBAC — RoleBinding for the diet-risk namespace.
+#
+# Binds the read-only role to a placeholder developer user and to the default
+# service account in the namespace. Replace "dev-user" with the Azure AD
+# user principal name or managed identity as appropriate.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: diet-risk-read-only-binding
+  namespace: diet-risk
+  labels:
+    app.kubernetes.io/part-of: diet-risk-platform
+subjects:
+  - kind: User
+    name: dev-user
+    apiGroup: rbac.authorization.k8s.io
+roleRef:
+  kind: Role
+  name: diet-risk-read-only
+  apiGroup: rbac.authorization.k8s.io

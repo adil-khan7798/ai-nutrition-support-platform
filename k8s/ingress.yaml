@@ -1,0 +1,64 @@
+# Ingress — public HTTP entry point for the platform.
+#
+# Split into two objects:
+#   1. diet-risk-ingress-docs  — /docs and /openapi.json, no rewrite needed.
+#   2. diet-risk-ingress-api   — /api/* with prefix-strip rewrite to /* on backend.
+#
+# The ML API is intentionally NOT exposed externally.
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: diet-risk-ingress-docs
+  namespace: diet-risk
+  labels:
+    app.kubernetes.io/part-of: diet-risk-platform
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "150"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "150"
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+    - http:
+        paths:
+          - path: /docs
+            pathType: Prefix
+            backend:
+              service:
+                name: intake-api
+                port:
+                  number: 8001
+          - path: /openapi.json
+            pathType: Prefix
+            backend:
+              service:
+                name: intake-api
+                port:
+                  number: 8001
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: diet-risk-ingress-api
+  namespace: diet-risk
+  labels:
+    app.kubernetes.io/part-of: diet-risk-platform
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    nginx.ingress.kubernetes.io/proxy-body-size: "2m"
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "150"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "150"
+spec:
+  ingressClassName: webapprouting.kubernetes.azure.com
+  rules:
+    - http:
+        paths:
+          - path: /api(/|$)(.*)
+            pathType: ImplementationSpecific
+            backend:
+              service:
+                name: intake-api
+                port:
+                  number: 8001

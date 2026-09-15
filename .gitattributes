@@ -1,0 +1,37 @@
+# ---------------------------------------------------------------------------
+# GitHub Linguist overrides
+#
+# Linguist only counts files it classifies as "programming" or "markup" toward
+# the repository language bar. YAML is classified as "data", so the Kubernetes
+# manifests and GitHub Actions workflows are excluded by default. Mark them
+# detectable so the infrastructure work is represented.
+# ---------------------------------------------------------------------------
+k8s/*.yaml              linguist-detectable
+.github/workflows/*.yml linguist-detectable
+zap.yaml                linguist-detectable
+
+# Committed datasets and trained model artifacts are inputs, not authored code.
+# Exclude them from language stats and collapse them in diffs.
+intake_api/food.csv     linguist-generated
+ml_api/nhanes.csv       linguist-generated
+ml_api/models/*.joblib  linguist-generated
+
+# ---------------------------------------------------------------------------
+# Line endings
+#
+# Normalise to LF in the repository and check out native on each platform, so
+# the repo is consistent across the Windows and Linux machines it is used from.
+# ---------------------------------------------------------------------------
+* text=auto
+
+*.py    text diff=python
+*.ipynb text
+*.md    text
+*.yaml  text
+*.yml   text
+*.json  text
+*.csv   text
+*.sh    text eol=lf
+
+Dockerfile text
+*.joblib   binary

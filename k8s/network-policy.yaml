@@ -1,0 +1,32 @@
+# NetworkPolicy — restrict pod-to-pod traffic in the diet-risk namespace.
+#
+# Rule: only intake-api pods may reach ml-api pods on port 8002.
+# All other ingress to ml-api is denied, including direct external access.
+# This enforces that the ML inference endpoint is never reachable except
+# through the authorised intake-api service.
+#
+# Prerequisite: AKS must use a CNI plugin that enforces NetworkPolicy
+# (Azure CNI with Calico, or Azure Network Policy Manager).
+# Enable when creating the cluster:
+#   az aks create ... --network-plugin azure --network-policy calico
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: allow-intake-to-ml
+  namespace: diet-risk
+  labels:
+    app.kubernetes.io/part-of: diet-risk-platform
+spec:
+  podSelector:
+    matchLabels:
+      app: ml-api
+  policyTypes:
+    - Ingress
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              app: intake-api
+      ports:
+        - protocol: TCP
+          port: 8002
